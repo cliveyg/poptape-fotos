@@ -27,14 +27,12 @@ from pymongo import errors as PymongoException
 #-----------------------------------------------------------------------------#
 
 #-----------------------------------------------------------------------------#
-# return items by logged in user - optional pagination with from and to fields
+# return fotos by logged in user - optional pagination with from and to fields
 #-----------------------------------------------------------------------------#
 
 @bp.route('/fotos', methods=['GET'])
 @require_access_level(10, request)
 def get_fotos_by_user(public_id, request):
-
-    #TODO: change all this - currently not saving by public_id but by item_id
 
     offset, sort = 0, 'id_asc'
     limit = int(app.config['PAGE_LIMIT'])
@@ -46,6 +44,9 @@ def get_fotos_by_user(public_id, request):
     if 'sort' in request.args:
         sort = request.args['sort']
 
+    #TODO: need to get all the items by a user and then pull photos as they're 
+    # stored by item_id collections
+
     starting_id = None
     try:
         starting_id = mongo.db[public_id].find().sort('_id', ASCENDING)
@@ -53,10 +54,11 @@ def get_fotos_by_user(public_id, request):
     except:
         jsonify({ 'message': 'There\'s a problem with your arguments or mongo or both or something else ;)'}), 400
 
-    if starting_id is None:
+    if starting_id is None or starting_id.count() == 0:
         return jsonify({ 'message': 'Nowt here chap'}), 404
 
-    if starting_id.count() <= offset:
+    app.logger.info("Starting id count is [%s]",str(starting_id.count()))
+    if starting_id.count() != 0 and starting_id.count() <= offset:
         return jsonify({ 'message': 'offset is too big'}), 400
 
     if offset < 0:
@@ -69,7 +71,7 @@ def get_fotos_by_user(public_id, request):
     try:
         fotos = mongo.db[public_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
     except:
-        jsonify({ 'message': 'There\'s a problem with your arguments or planets are misaligned. try sacrificing a goat or something...'}), 400
+        jsonify({ 'message': 'There\'s a problem with your arguments or the planets are misaligned. Try sacrificing a goat or something...'}), 400
 
     output = []
     for foto in fotos:
@@ -119,12 +121,12 @@ def return_all_items_listed(public_id, request, item_id):
 
     starting_id = None
     try:
-        starting_id = mongo.db[item_id].find().sort('_id', ASCENDING)
-        #results_count = starting_id.count()
+        #starting_id = mongo.db[item_id].find().sort('_id', ASCENDING)
+        starting_id = mongo.db[item_id].find().sort('metadata.idx', ASCENDING)    
     except:
         jsonify({ 'message': 'There\'s a problem with your arguments or mongo or both or something else ;)'}), 400
 
-    if starting_id is None:
+    if starting_id.count() == 0 or starting_id is None:
         return jsonify({ 'message': 'Nowt here chap'}), 404
 
     if starting_id.count() <= offset:
@@ -133,12 +135,13 @@ def return_all_items_listed(public_id, request, item_id):
     if offset < 0:
         return jsonify({ 'message': 'offset is negative'}), 400
 
-    last_id = starting_id[offset]['_id']
+    last_id = starting_id[offset]['metadata']['idx']
     results_count = starting_id.count()
 
     fotos = []
     try:
-        fotos = mongo.db[item_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
+        #fotos = mongo.db[item_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
+        fotos = mongo.db[item_id].find({'metadata.idx': { '$gte': last_id}}).sort('metadata.idx', ASCENDING).limit(limit)
     except:
         jsonify({ 'message': 'There\'s a problem with your arguments or planets are misaligned. try sacrificing a goat or something...'}), 400
 
@@ -158,18 +161,18 @@ def return_all_items_listed(public_id, request, item_id):
     return_data = { 'fotos': output }
 
     if url_offset_next < results_count:
-        next_url = '/fotos/'+item_id+'?limit='+str(limit)+'&offset='+str(url_offset_next)+'&sort='+sort
+        next_url = '/fotos/item/'+item_id+'?limit='+str(limit)+'&offset='+str(url_offset_next)+'&sort='+sort
         return_data['next_url'] = next_url
 
     if offset > 0:
-        prev_url = '/fotos/'+item_id+'?limit='+str(limit)+'&offset='+str(url_offset_prev)+'&sort='+sort
+        prev_url = '/fotos/item/'+item_id+'?limit='+str(limit)+'&offset='+str(url_offset_prev)+'&sort='+sort
         return_data['prev_url'] = prev_url
 
     return jsonify(return_data), 200
 
 
 #-----------------------------------------------------------------------------#
-# create item by logged in user
+# create foto by logged in user
 #-----------------------------------------------------------------------------#
 
 @bp.route('/fotos', methods=['POST'])
@@ -184,18 +187,12 @@ def create_foto(public_id, request):
     except JsonValidationError as err:
         return jsonify({ 'message': 'Check ya inputs mate.', 'error': err.message }), 400
 
-#    new_item = Item(input_data['name'],
-#                    input_data['description'],
-#                    input_data['owner'],
-#                    input_data['status'],
-#                    input_data['item_type'])
-#
-#    app.logger.debug('[ITEM]: ' + new_item.owner)
-
     # each item has it's own collection that foto data is stored in
-    foto_id = str(uuid.uuid4())
+    #foto_id = str(uuid.uuid4())
+    foto_id = input_data['foto_id']
     item_id = input_data['item_id']
     del input_data['item_id']
+    del input_data['foto_id']
     input_data['public_id'] = public_id
     try:
         mongo.db[item_id].insert_one({"_id" : foto_id, "metadata": input_data})    
@@ -207,91 +204,6 @@ def create_foto(public_id, request):
         return jsonify(message), 500
 
     return jsonify({ 'foto_id': foto_id }), 201
-
-# -----------------------------------------------------------------------------
-
-@bp.route('/fotos/ctaws', methods=['GET'])
-@require_access_level(10, request)
-def connect_to_aws(public_id, request):
-
-    collection_name = 'Z'+public_id.replace('-','')
-
-    token = request.headers.get('x-access-token')
-    #test_public_id = '9cbb22d6-1a31-470d-802f-a7766f1b87f5'
-
-    # jobbob3
-    test_public_id = '150ce7b2-fbb4-4a45-82d9-6c97b0886847' #'4d31db4b-cc6e-4e71-8a01-c1df8ad28088'
-    collection_name = 'Z150ce7b2fbb44a4582d96c97b0886847'
-
-    headers = { 'Content-Type': 'application/json', 'x-access-token': token }
-    r = requests.get(app.config['CHECK_ACCESS_URL']+test_public_id+'/aws', headers=headers)    
-    app.logger.debug('connect_to_aws Status Code: '+str(r.status_code))  
-    app.logger.debug('connect_to_aws Return text: '+r.text)
-    if r.status_code != 200:
-        return jsonify({ 'message': 'Ooopsy, that\'s not supposed to happen' })
-
-    returned_json = r.json()
-    app.logger.debug('connect_to_aws  Returned JSON: '+str(returned_json)) 
-
-    # setup aws
-    iam = boto3.client("iam",
-                       aws_access_key_id=returned_json['aws_AccessKeyId'],
-                       aws_secret_access_key=returned_json['aws_SecretAccessKey'],
-                       config=Config(signature_version='s3v4'))
-                       #config=Config(use-sigv4 = True))
-                       #aws_session_token=os.getenv('AWS_SESSION_TOKEN'))
-
-    s3 = boto3.client("s3",
-                      aws_access_key_id=returned_json['aws_AccessKeyId'],
-                      aws_secret_access_key=returned_json['aws_SecretAccessKey'],
-                      config=Config(signature_version='s3v4'))
-                       #config=Config(use-sigv4 = True))
-
-    app.logger.debug('connect_to_aws  Returned Objects:\n'+str(type(iam))+'\n'+str(type(s3))+'\n')
-    
-    app.logger.debug(s3.list_buckets())
-
-    # for bucket in s3.buckets.all():
-    buckets = s3.list_buckets()
-    for bucket in buckets['Buckets']:
-        app.logger.debug('Bucket name: '+bucket['Name'])
-
-    #app.logger.debug(s3.list_buckets())
-
-    kwargs = { 'Bucket': buckets['Buckets'][0]['Name'] }
-    prefix = 'items/'+collection_name
-    #prefix = None
-
-    # If the prefix is a single string (not a tuple of strings), we can
-    # do the filtering directly in the S3 API.
-    if isinstance(prefix, str):
-        kwargs['Prefix'] = prefix
-
-    #kwargs['Key'] = 'items/Z9cbb22d61a31470d802fa7766f1b87f5/background_01.jpg'
-
-    
-    app.logger.debug('KWARGS!\n'+str(kwargs))
-    # The S3 API response is a large blob of metadata.
-    # 'Contents' contains information about the listed objects.
-    resp = s3.list_objects(**kwargs)
-    #resp = s3.get_object(**kwargs)
-
-    app.logger.debug('RESP!\n'+str(resp))
-
-    try:
-        contents = resp['Contents']
-    except KeyError:
-        return
-
-    for obj in contents:
-        key = obj['Key']
-        app.logger.debug('[][] key is : '+key)
-
-    #resp = s3.list_objects_v2( Bucket='poptape.club' , Prefix='items/' )
-    #resp = s3.list_objects_v2( Bucket='poptape.club' )
-    #app.logger.debug(str(resp))
-
-    return jsonify({ 'aws_json': returned_json, 'contents': contents })
 
 #-----------------------------------------------------------------------------#
 # return item by logged in user - pass in item_id

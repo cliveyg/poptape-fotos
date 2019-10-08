@@ -1,7 +1,7 @@
 version: '3'
 services:
   api:
-    env_file: .env
+    env_file: app/.env
     build:
       context: .
       dockerfile: Dockerfile
@@ -21,14 +21,13 @@ services:
     networks:
       - net_poptape 
   mongo_db:
-    image: poptape/fotos/mongo:v0.1
+    image: mongo:3.6
     restart: always
-    env_file: .env
     ports:
       - 1237:27017
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME} 
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 48hfiodhf84o38o29hdb   
     volumes: 
       - poptape_fotos:/data/db
     networks:
