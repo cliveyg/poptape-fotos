@@ -11,6 +11,9 @@
 .coverage
 /migrations/
 /app/schemas/*
+/*.pyc
+/app/*.pyc
+/app/main/*.pyc
 # Un-ignore these files - it's bit of a clonky way to do it but it's more secure
 !app/
 !Dockerfile

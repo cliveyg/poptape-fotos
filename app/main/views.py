@@ -104,8 +104,9 @@ def get_fotos_by_user(public_id, request):
 #-----------------------------------------------------------------------------#
 
 @bp.route('/fotos/item/<uuid:item_id>', methods=['GET'])
-@require_access_level(10, request)
-def return_all_items_listed(public_id, request, item_id):
+#@require_access_level(10, request)
+#def return_all_items_listed(public_id, request, item_id):
+def return_all_items_listed(item_id):
 
     item_id = str(item_id)
 
