@@ -18,7 +18,7 @@
 !app/
 !Dockerfile
 !docker-compose.yml
-!foto.py
+!fotos.py
 !requirements.txt
 !app/__init__.py
 !app/config.py
