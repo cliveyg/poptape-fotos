@@ -2,6 +2,7 @@
 /*
 /votos/*
 /app/.env
+.env
 /.pytest_cache/
 /.coverage
 /__pycache__/
