@@ -12,7 +12,8 @@ services:
     depends_on:
       - mongo_db
     volumes:
-      - /var/log:/fotos/log
+#      - /var/log:/fotos/log
+      - /Users/cliveglew/dev/logs
     logging:
       driver: "json-file"
       options:
