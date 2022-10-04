@@ -1,7 +1,6 @@
 version: '3'
 services:
   api:
-    env_file: app/.env
     build:
       context: .
       dockerfile: Dockerfile
@@ -19,15 +18,15 @@ services:
         max-size: "10Mb"
         max-file: "5"
     networks:
-      - net_poptape 
+      - net_poptape
   mongo-db:
     image: mongo:3.6
     restart: always
     ports:
       - 1237:27017
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
     volumes: 
       - poptape_fotos:/data/db
     networks:
