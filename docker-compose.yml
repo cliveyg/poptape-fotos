@@ -10,7 +10,7 @@ services:
       - 1236:8002
     restart: always
     depends_on:
-      - mongo_db
+      - mongo-db
     volumes:
       - ${LOGFILE}
     logging:
@@ -20,7 +20,7 @@ services:
         max-file: "5"
     networks:
       - net_poptape 
-  mongo_db:
+  mongo-db:
     image: mongo:3.6
     restart: always
     ports:
