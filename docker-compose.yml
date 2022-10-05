@@ -1,4 +1,9 @@
-version: '3'
+version: '3.4'
+
+volumes:
+  poptape_fotos:
+    name: poptape_fotos
+
 services:
   api:
     build:
@@ -6,12 +11,12 @@ services:
       dockerfile: Dockerfile
     image: poptape/fotos/api:v0.1
     ports:
-      - 1236:8002
+      - "1236:8002"
     restart: always
     depends_on:
-      - mongo-db
+      - mongodb
     volumes:
-      - ${LOGFILE}
+      - /var/log:${LOGFILE}
     logging:
       driver: "json-file"
       options:
@@ -19,14 +24,14 @@ services:
         max-file: "5"
     networks:
       - net_poptape
-  mongo-db:
-    image: mongo:3.6
+  mongodb:
+    image: mongo
     restart: always
     ports:
-      - 1237:27017
+      - "1237:27017"
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes: 
       - poptape_fotos:/data/db
     networks:
@@ -34,5 +39,3 @@ services:
 networks:
   net_poptape:
     external: true
-volumes:
-  poptape_fotos:
