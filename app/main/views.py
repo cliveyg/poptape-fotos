@@ -234,6 +234,9 @@ def return_one_item(public_id, request, item_id):
 @require_access_level(5, request)
 def return_items_of_public_id(public_id, request, other_user_public_id):
 
+    if is_valid_uuid(other_user_public_id) is False:
+        return jsonify({ 'message': 'Invalid UUID'}), 400
+
     collection_name = 'Z' + other_user_public_id.replace('-','')
 
     output = []
@@ -276,6 +279,14 @@ def system_running():
 #-----------------------------------------------------------------------------#
 # debug and helper functions
 #-----------------------------------------------------------------------------#
+
+def is_valid_uuid(value):
+    try:
+        uuid.UUID(str(value))
+
+        return True
+    except ValueError:
+        return False
 
 def _return_document(public_id, item_id):
 
