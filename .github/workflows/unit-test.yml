@@ -1,0 +1,17 @@
+name: Run unit tests
+on: 
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+  - cron: '10 10 * * 1' # run "At 10:00 on Monday"
+
+jobs:
+  # Run code tests before building the image, to ensure it is good to go
+  unit-tests:
+    name: Run code tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9] # Using a list so it's extensible for future use
