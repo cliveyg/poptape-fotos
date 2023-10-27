@@ -15,6 +15,11 @@ jobs:
     strategy:
       matrix:
         python-version: [3.9] # Using a list so it's extensible for future use
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
     steps:
 
       - uses: actions/checkout@v4
@@ -32,3 +37,4 @@ jobs:
       - name: Create .env file from github secrets
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
+          
