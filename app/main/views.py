@@ -1,34 +1,25 @@
 # app/main/views.py
-from app import mongo, limiter, flask_uuid
-from flask import jsonify, request, abort, url_for
-from flask import make_response, session
+from bson import ObjectId
+
+from app import mongo
+from flask import jsonify, request
 from flask import current_app as app
 from app.main import bp
-from app.models import Foto
 from app.assertions import assert_valid_schema
 from app.decorators import require_access_level
-
 from jsonschema.exceptions import ValidationError as JsonValidationError
-
-import boto3
-from botocore.client import Config
-
-import requests
-
 import uuid
-import datetime
-import json
 
-from pymongo import ASCENDING, DESCENDING
+from pymongo import ASCENDING
 from pymongo import errors as PymongoException
 
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 # fotos routes
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 # return fotos by logged in user - optional pagination with from and to fields
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 
 @bp.route('/fotos', methods=['GET'])
 @require_access_level(10, request)
@@ -261,12 +252,12 @@ def return_items_of_public_id(public_id, request, other_user_public_id):
 
     #return jsonify({ 'message': 'In [/items/items/user/'+other_user_public_id+'] with current user ['+public_id+']' }), 501
 
-#------------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 
 
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 # system routes
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 
 @bp.route('/fotos/status', methods=['GET'])
 def system_running():
@@ -276,9 +267,9 @@ def system_running():
     return jsonify({ 'message': 'System running...' }), 200
 
 
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 # debug and helper functions
-#-----------------------------------------------------------------------------#
+# --------------------------------------------------------------------------- #
 
 def is_valid_uuid(value):
     try:

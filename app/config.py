@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Config(object):
     # set app configs
     SECRET_KEY = os.getenv('SECRET_KEY')
@@ -14,6 +15,7 @@ class Config(object):
     FERNET_KEY = os.getenv('FERNET_KEY')
     PAGE_LIMIT = os.getenv('PAGE_LIMIT')
     MONGO_URI = os.getenv('MONGO_URI')
+
 
 class TestConfig(Config):
     PAGE_LIMIT = "2"
