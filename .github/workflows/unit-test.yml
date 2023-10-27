@@ -18,6 +18,9 @@ jobs:
     services:
       mongodb:
         image: mongo:7.0
+        env:
+          MONGO_INITDB_ROOT_USERNAME: poptape_fotos_test
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.TESTDB_PASSWORD }}
         ports:
           - 27017:27017
     steps:
