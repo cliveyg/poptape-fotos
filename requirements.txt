@@ -16,6 +16,7 @@ Flask-Limiter
 Flask-Migrate
 Flask-PyMongo
 Flask-SQLAlchemy
+Flask-Testing
 Flask-UUID
 gunicorn
 idna
@@ -51,5 +52,4 @@ six
 SQLAlchemy
 urllib3
 wcwidth
-Werkzeug
 zipp
