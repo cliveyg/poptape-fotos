@@ -4,7 +4,6 @@ from functools import wraps
 import os
 from dotenv import load_dotenv
 from flask import jsonify
-from flask import current_app as appy
 
 load_dotenv()
 
