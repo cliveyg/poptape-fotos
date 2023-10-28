@@ -8,13 +8,13 @@ on:
   - cron: '10 10 * * 1' # run "At 10:00 on Monday"
 
 jobs:
-  # Run code tests before building the image, to ensure it is good to go
+  # run code tests
   unit-tests:
     name: Run code tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9] # Using a list so it's extensible for future use
+        python-version: [3.9] 
     services:
       mongodb:
         image: mongo:7.0
