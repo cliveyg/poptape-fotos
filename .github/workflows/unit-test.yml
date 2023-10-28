@@ -8,22 +8,39 @@ on:
   - cron: '10 10 * * 1' # run "At 10:00 on Monday"
 
 jobs:
-  # Run code tests before building the image, to ensure it is good to go
+  # run code tests
   unit-tests:
     name: Run code tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9] # Using a list so it's extensible for future use
+        python-version: [3.9]
     services:
       mongodb:
         image: mongo:7.0
         env:
           MONGO_INITDB_ROOT_USERNAME: poptape_fotos_test
           MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.TESTDB_PASSWORD }}
+          MONGO_INITDB_DATABASE: poptape_fotos_test
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand("ping").ok' | mongosh --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
+      - name: Install mongosh command
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+          echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+          sudo apt-get update
+          sudo apt-get install -y mongodb-mongosh
+      - name: Test mongo connection
+        run: "sudo mongosh localhost:27017"
 
       - uses: actions/checkout@v4
       - name: Setting up Python ${{ matrix.python-version }}
