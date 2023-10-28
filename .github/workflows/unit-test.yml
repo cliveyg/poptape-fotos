@@ -21,14 +21,19 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: poptape_fotos_test
           MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.TESTDB_PASSWORD }}
-          MONGO_INITDB_DATABASE: poptape_fotos_test
+    #      MONGO_INITDB_DATABASE: poptape_fotos_test
         ports:
           - 27017:27017
         options: >-
-          --health-cmd mongo
-          --health-interval 15s
-          --health-timeout 10s
+          --health-cmd "echo 'db.runCommand("ping").ok' | mongosh --quiet"
+          --health-interval 10s
+          --health-timeout 5s
           --health-retries 5
+   #     options: >-
+   #       --health-cmd mongo
+   #       --health-interval 15s
+   #       --health-timeout 10s
+   #       --health-retries 5
     steps:
 
       - name: Check mongo connection
