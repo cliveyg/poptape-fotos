@@ -21,7 +21,7 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: poptape_fotos_test
           MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.TESTDB_PASSWORD }}
-    #      MONGO_INITDB_DATABASE: poptape_fotos_test
+          MONGO_INITDB_DATABASE: poptape_fotos_test
         ports:
           - 27017:27017
         options: >-
@@ -29,12 +29,12 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-   #     options: >-
-   #       --health-cmd mongo
-   #       --health-interval 15s
-   #       --health-timeout 10s
-   #       --health-retries 5
+
     steps:
+      - name: Install mongodb-tools
+        run: |
+          wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.6.1.deb
+          sudo apt install ./mongodb-database-tools-*-100.6.1.deb
 
       - name: Check mongo connection
         run: |
