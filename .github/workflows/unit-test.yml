@@ -42,15 +42,6 @@ jobs:
       - name: Test mongo connection
         run: "sudo mongosh localhost:27017"
 
-    #  - name: Install mongodb-tools
-    #    run: |
-    #      wget https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.6.1.deb
-    #      sudo apt install ./mongodb-database-tools-*-100.6.1.deb
-
-    #  - name: Check mongo connection
-    #    run: |
-    #      mongo --eval 'db.runCommand({ connectionStatus: 1 })'
-
       - uses: actions/checkout@v4
       - name: Setting up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
