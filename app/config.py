@@ -9,7 +9,7 @@ class Config(object):
     # set app configs
     SECRET_KEY = os.getenv('SECRET_KEY')
     CHECK_ACCESS_URL = os.getenv('CHECK_ACCESS_URL')
-    FOTOS_LIMIT_PER_PAGE = os.getenv('ADDRESS_LIMIT_PER_PAGE')
+    FOTOS_LIMIT_PER_PAGE = os.getenv('FOTOS_LIMIT_PER_PAGE')
     LOG_FILENAME = os.getenv('LOG_FILENAME')
     LOG_LEVEL = os.getenv('LOG_LEVEL')
     FERNET_KEY = os.getenv('FERNET_KEY')
