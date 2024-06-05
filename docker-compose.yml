@@ -16,7 +16,7 @@ services:
     depends_on:
       - mongodb
     volumes:
-      - /var/log:${LOGFILE}
+      - ${LOCAL_LOG_LOC}:/fotos/log
     logging:
       driver: "json-file"
       options:
