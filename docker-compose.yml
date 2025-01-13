@@ -1,5 +1,3 @@
-version: '3.4'
-
 volumes:
   poptape_fotos:
     name: poptape_fotos
@@ -23,7 +21,7 @@ services:
         max-size: "10Mb"
         max-file: "5"
     networks:
-      - net_poptape
+      - poptape
   mongodb:
     image: mongo
     restart: always
@@ -35,7 +33,7 @@ services:
     volumes: 
       - poptape_fotos:/data/db
     networks:
-      - net_poptape    
+      - poptape
 networks:
-  net_poptape:
+  poptape:
     external: true
