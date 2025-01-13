@@ -1,9 +1,3 @@
-version: '3.4'
-
-volumes:
-  poptape_fotos:
-    name: poptape_fotos
-
 services:
   api:
     build:
@@ -12,7 +6,7 @@ services:
     image: poptape/fotos/api:v0.1
     ports:
       - "1236:8002"
-    restart: always
+    restart: no
     depends_on:
       - mongodb
     volumes:
@@ -23,19 +17,43 @@ services:
         max-size: "10Mb"
         max-file: "5"
     networks:
-      - net_poptape
+      - poptape
   mongodb:
-    image: mongo
+    image: mongo:latest
     restart: always
+    command:
+      - --storageEngine
+      - wiredTiger
+      - --auth
     ports:
       - "1237:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-    volumes: 
+    volumes:
       - poptape_fotos:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    env_file:
+      - path: app/.env
     networks:
-      - net_poptape    
+      - poptape
+#  mongodb:
+#    image: mongo
+#    restart: always
+#    ports:
+#      - "1237:27017"
+#    #env_file:
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: admin
+#      MONGO_INITDB_ROOT_PASSWORD: dkashiqhddq34g
+#      MONGO_INITDB_DATABASE: admin
+#    volumes:
+#      - poptape_fotos:/data/db
+#    networks:
+#      - poptape
+volumes:
+  poptape_fotos:
+    name: poptape_fotos
 networks:
-  net_poptape:
+  poptape:
     external: true
