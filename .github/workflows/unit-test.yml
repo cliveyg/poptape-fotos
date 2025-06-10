@@ -19,7 +19,7 @@ jobs:
         python-version: ['3.12']
     services:
       mongodb:
-        image: mongo:7.0
+        image: mongo:latest
         env:
           MONGO_INITDB_ROOT_USERNAME: poptape_fotos_test
           MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.TESTDB_PASSWORD }}
