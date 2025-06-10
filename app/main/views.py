@@ -89,17 +89,15 @@ def get_fotos_by_user(public_id, request):
 
     return jsonify(return_data), 200
 
+# --------------------------------------------------------------------------- #
+# return fotos by logged in user - optional pagination with from and to fields
+# --------------------------------------------------------------------------- #
 
-#-----------------------------------------------------------------------------#
-# return list of fotos associated with an item 
-#-----------------------------------------------------------------------------#
+@bp.route('/fotos/<uuid:foto_id>', methods=['GET'])
+@require_access_level(10, request)
+def get_one_foto_by_user(public_id, request):
 
-@bp.route('/fotos/item/<uuid:item_id>', methods=['GET'])
-#@require_access_level(10, request)
-#def return_all_items_listed(public_id, request, item_id):
-def return_all_items_listed(item_id):
-
-    item_id = str(item_id)
+    app.logger.debug(app.config)
 
     offset, sort = 0, 'id_asc'
     limit = int(app.config['PAGE_LIMIT'])
@@ -111,29 +109,104 @@ def return_all_items_listed(item_id):
     if 'sort' in request.args:
         sort = request.args['sort']
 
+    #TODO: need to get all the items by a user and then pull photos as they're
+    # stored by item_id collections
+
     starting_id = None
     try:
-        #starting_id = mongo.db[item_id].find().sort('_id', ASCENDING)
-        starting_id = mongo.db[item_id].find().sort('metadata.idx', ASCENDING)    
+        starting_id = mongo.db[public_id].find().sort('_id', ASCENDING)
+        #results_count = starting_id.count()
     except:
         jsonify({ 'message': 'There\'s a problem with your arguments or mongo or both or something else ;)'}), 400
 
-    if starting_id.count() == 0 or starting_id is None:
+    if starting_id is None or starting_id.count() == 0:
         return jsonify({ 'message': 'Nowt here chap'}), 404
 
-    if starting_id.count() <= offset:
+    app.logger.info("Starting id count is [%s]",str(starting_id.count()))
+    if starting_id.count() != 0 and starting_id.count() <= offset:
         return jsonify({ 'message': 'offset is too big'}), 400
 
     if offset < 0:
         return jsonify({ 'message': 'offset is negative'}), 400
 
-    last_id = starting_id[offset]['metadata']['idx']
+    last_id = starting_id[offset]['_id']
     results_count = starting_id.count()
 
     fotos = []
     try:
+        fotos = mongo.db[public_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
+    except:
+        jsonify({ 'message': 'There\'s a problem with your arguments or the planets are misaligned. Try sacrificing a goat or something...'}), 400
+
+    output = []
+    for foto in fotos:
+        foto['id'] = str(foto['_id'])
+        del foto['_id']
+        output.append(foto)
+    url_offset_next = offset+limit
+    url_offset_prev = offset-limit
+    if url_offset_prev < 0:
+        url_offset_prev = 0
+
+    if url_offset_next > fotos.count():
+        next_url = None
+
+    return_data = { 'fotos': output }
+
+    if url_offset_next < results_count:
+        next_url = '/fotos?limit='+str(limit)+'&offset='+str(url_offset_next)+'&sort='+sort
+        return_data['next_url'] = next_url
+
+    if offset > 0:
+        prev_url = '/fotos?limit='+str(limit)+'&offset='+str(url_offset_prev)+'&sort='+sort
+        return_data['prev_url'] = prev_url
+
+    return jsonify(return_data), 200
+
+#-----------------------------------------------------------------------------#
+# return list of fotos associated with an item 
+#-----------------------------------------------------------------------------#
+
+@bp.route('/fotos/item/<uuid:item_id>', methods=['GET'])
+#@require_access_level(10, request)
+#def return_all_items_listed(public_id, request, item_id):
+def return_all_records_in_collection(item_id):
+
+    item_id = str(item_id)
+    offset, sort = 0, 'id_asc'
+    limit = int(app.config['PAGE_LIMIT'])
+
+    if 'offset' in request.args:
+        offset = int(request.args['offset'])
+    if 'limit' in request.args:
+        limit = int(request.args['limit'])
+    if 'sort' in request.args:
+        sort = request.args['sort']
+
+    #starting_id = None
+    try:
+        #starting_id = mongo.db[item_id].find().sort('_id', ASCENDING)
+        #starting_id = mongo.db[item_id].find().sort('metadata.idx', ASCENDING)
+        records = list(mongo.db[item_id].find().sort('metadata.idx', ASCENDING))
+    except:
+        jsonify({ 'message': 'There\'s a problem with your arguments or mongo or both or something else ;)'}), 400
+
+    num_of_recs = len(records)
+    if num_of_recs == 0:
+        return jsonify({ 'message': 'Nowt here chap'}), 404
+
+    if num_of_recs <= offset:
+        return jsonify({ 'message': 'offset is too big'}), 400
+
+    if offset < 0:
+        return jsonify({ 'message': 'offset is negative'}), 400
+
+    last_id = records[offset]['metadata']['idx']
+
+    fotos = []
+    try:
         #fotos = mongo.db[item_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
-        fotos = mongo.db[item_id].find({'metadata.idx': { '$gte': last_id}}).sort('metadata.idx', ASCENDING).limit(limit)
+        fotos = list(mongo.db[item_id].find({'metadata.idx': { '$gte': last_id}}).sort('metadata.idx', ASCENDING).limit(limit))
     except:
         jsonify({ 'message': 'There\'s a problem with your arguments or planets are misaligned. try sacrificing a goat or something...'}), 400
 
@@ -147,12 +220,12 @@ def return_all_items_listed(item_id):
     if url_offset_prev < 0:
          url_offset_prev = 0
 
-    if url_offset_next > fotos.count():
+    if url_offset_next > len(fotos):
         next_url = None
 
     return_data = { 'fotos': output }
 
-    if url_offset_next < results_count:
+    if url_offset_next < num_of_recs:
         next_url = '/fotos/item/'+item_id+'?limit='+str(limit)+'&offset='+str(url_offset_next)+'&sort='+sort
         return_data['next_url'] = next_url
 
@@ -188,10 +261,10 @@ def create_foto(public_id, request):
     input_data['public_id'] = public_id
     try:
         mongo.db[item_id].insert_one({"_id" : foto_id, "metadata": input_data})    
-    except PymongoException as e:
+    except Exception as e:
         message = { 'message': 'Ooopsy, couldn\'t create mongo document.' }
         app.logger.error("Pymongo error [%s]", str(e))
-        if app.config['ENVIRONMENT'] != 'PRODUCTION':
+        if app.config['ENVIRONMENT'] != 'PROD':
             message['error'] = str(e)
         return jsonify(message), 500
 
@@ -201,20 +274,20 @@ def create_foto(public_id, request):
 # return item by logged in user - pass in item_id
 #-----------------------------------------------------------------------------#
 
-@bp.route('/fotos/items/<item_id>', methods=['GET'])
-@require_access_level(10, request)
-def return_one_item(public_id, request, item_id):
-
-    app.logger.debug('In /items/items/<item_id> (GET)')    
-    #TODO: input validation
-
-    record = _return_document(public_id, item_id)
- 
-    if isinstance(record,dict):
-        return jsonify(record), 200
-
-    collection_name = 'Z' + public_id.replace('-','')
-    return jsonify({ 'message': 'Could not find the item ['+item_id+'] in collection ['+collection_name+']' }), 404
+#@bp.route('/fotos/items/<item_id>', methods=['GET'])
+#@require_access_level(10, request)
+#def return_one_item(public_id, request, item_id):
+#
+#    app.logger.debug('In /items/items/<item_id> (GET)')
+#    #TODO: input validation
+#
+#    record = _return_document(public_id, item_id)
+#
+#    if isinstance(record,dict):
+#        return jsonify(record), 200
+#
+#    collection_name = 'Z' + public_id.replace('-','')
+#    return jsonify({ 'message': 'Could not find the item ['+item_id+'] in collection ['+collection_name+']' }), 404
 
 
 #-----------------------------------------------------------------------------#

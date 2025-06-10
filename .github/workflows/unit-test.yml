@@ -1,4 +1,6 @@
 name: Run unit tests
+permissions:
+  contents: read
 on: 
   push:
     branches: [main]
@@ -14,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: ['3.12']
     services:
       mongodb:
         image: mongo:7.0
@@ -53,8 +55,8 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      # have to create an .env file to be able to run unit tests
-      - name: Create .env file from github secrets
+      # have to create an .env_old file to be able to run unit tests
+      - name: Create .env_old file from github secrets
         run: |
           echo "${{ secrets.ENV_FILE }}" > .env
           

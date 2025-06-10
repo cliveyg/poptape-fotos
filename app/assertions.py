@@ -1,6 +1,6 @@
 import os.path
 import json
-from jsonschema import validate, draft7_format_checker
+from jsonschema import validate, Draft7Validator
 
 def assert_valid_schema(data):
     # checks whether the given data matches the schema
@@ -9,7 +9,7 @@ def assert_valid_schema(data):
 
     schema = _load_json_schema('schemas/fotos.json')
 
-    return validate(data, schema, format_checker=draft7_format_checker)
+    return validate(data, schema, format_checker=Draft7Validator.FORMAT_CHECKER)
 
 
 def _load_json_schema(filename):
