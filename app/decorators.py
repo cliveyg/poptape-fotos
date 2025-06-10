@@ -4,6 +4,7 @@ from functools import wraps
 import os
 from dotenv import load_dotenv
 from flask import jsonify
+from flask import current_app as app
 
 load_dotenv()
 
@@ -16,6 +17,7 @@ def require_access_level(access_level,request): # pragma: no cover
         @wraps(f)
         def decorated(*args, **kwargs):
 
+            app.logger.debug("request.headers is [%s]",request.headers)
             token = request.headers.get('x-access-token')
 
             if not token:
@@ -23,9 +25,11 @@ def require_access_level(access_level,request): # pragma: no cover
 
             headers = { 'Content-Type': 'application/json', 'x-access-token': token }
             url = os.getenv('CHECK_ACCESS_URL')+str(access_level)
+            app.logger.debug("Authy URL is [%s]",url)
             r = call_requests(url, headers)
 
             if r.status_code != 200:
+                app.logger.error("Response is [%s]", r)
                 return jsonify({ 'message': 'Ooh you are naughty!'}), 401
 
             returned_json = r.json()
