@@ -1,11 +1,4 @@
-FROM python:3.12-alpine
-
-# add bash etc as alpine version doesn't have these
-RUN apk add --no-cache bash git gawk sed grep bc coreutils 
-
-# this modules enable use to build bcrypt
-RUN apk --no-cache add --virtual build-dependencies gcc g++ make libffi-dev
-RUN apk add --no-cache redis
+FROM python:3.12-slim
 
 # this needs to match the directory/package name of the python app
 COPY . /fotos
