@@ -37,23 +37,9 @@ services:
       - path: app/.env
     networks:
       - poptape
-#  mongodb:
-#    image: mongo
-#    restart: always
-#    ports:
-#      - "1237:27017"
-#    #env_file:
-#    environment:
-#      MONGO_INITDB_ROOT_USERNAME: admin
-#      MONGO_INITDB_ROOT_PASSWORD: dkashiqhddq34g
-#      MONGO_INITDB_DATABASE: admin
-#    volumes:
-#      - poptape_fotos:/data/db
-#    networks:
-#      - poptape
 volumes:
   poptape_fotos:
-    name: poptape_fotos
+    name: poptape_fotos_data
 networks:
   poptape:
     external: true

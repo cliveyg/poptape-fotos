@@ -12,8 +12,5 @@ RUN pip install --trusted-host pypi.python.org -r requirements.txt
 # Make port 8002 available to the world outside this container
 EXPOSE 8002
 
-# Define environment variables here
-# args are passed it from cli or docker-compose.yml
-
 # Run gunicorn when the container launches
 CMD ["gunicorn", "-b", "0.0.0.0:8002", "fotos:app"]
