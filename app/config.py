@@ -13,6 +13,7 @@ class Config(object):
     LOG_LEVEL = os.getenv('LOG_LEVEL')
     FERNET_KEY = os.getenv('FERNET_KEY')
     PAGE_LIMIT = os.getenv('PAGE_LIMIT')
+    ENVIRONMENT = os.getenv('ENVIRONMENT')
     #PAGE_LIMIT = "5"
     MONGO_URI = os.getenv('MONGO_URI')
 

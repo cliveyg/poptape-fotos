@@ -1,6 +1,5 @@
 # app/main/views.py
-from bson import ObjectId
-
+# from bson import ObjectId
 from app import mongo
 from flask import jsonify, request
 from flask import current_app as app
@@ -9,231 +8,81 @@ from app.assertions import assert_valid_schema
 from app.decorators import require_access_level
 from jsonschema.exceptions import ValidationError as JsonValidationError
 import uuid
+from urllib.parse import urlencode
+# import re
 
-from pymongo import ASCENDING
-from pymongo import errors as PymongoException
+# from pymongo import ASCENDING
+# from pymongo import errors as PymongoException
 
 # --------------------------------------------------------------------------- #
 # fotos routes
 # --------------------------------------------------------------------------- #
 
 # --------------------------------------------------------------------------- #
-# return fotos by logged in user - optional pagination with from and to fields
+# return fotos by foto_id. there is a possibility of multiple docs per foto_id
+# --------------------------------------------------------------------------- #
+
+@bp.route('/fotos/<foto_id>', methods=['GET'])
+# @require_access_level(10, request)
+# def get_foto_by_id(public_id, request, foto_id):
+def get_foto_by_id(foto_id):
+
+    app.logger.debug("In get_foto_by_id")
+
+    if not is_valid_uuid(foto_id):
+        return jsonify({ 'message': 'Invalid UUID'}), 400
+    safe_uuid = str(foto_id)
+
+    # can have several docs returned per foto as foto reuse is possible
+    records = _return_documents(request, safe_uuid, "foto_id")
+    if not records:
+        return jsonify({ 'message': 'Something went pop'}), 500
+
+    return jsonify(records), 200
+
+# --------------------------------------------------------------------------- #
+# return fotos by current user
 # --------------------------------------------------------------------------- #
 
 @bp.route('/fotos', methods=['GET'])
 @require_access_level(10, request)
-def get_fotos_by_user(public_id, request):
+# def get_foto_by_id(public_id, request, foto_id):
+def get_fotos_by_current_user(public_id, request):
 
-    offset, sort = 0, 'id_asc'
-    limit = int(app.config['PAGE_LIMIT'])
+    app.logger.debug("In get_fotos_by_current_user")
 
-    if 'offset' in request.args:
-        offset = int(request.args['offset'])
-    if 'limit' in request.args:
-        limit = int(request.args['limit'])
-    if 'sort' in request.args:
-        sort = request.args['sort']
+    if not is_valid_uuid(public_id):
+        return jsonify({ 'message': 'Invalid UUID'}), 400
+    safe_uuid = str(public_id)
 
-    #TODO: need to get all the items by a user and then pull photos as they're 
-    # stored by item_id collections
+    # can have several docs returned per item
+    records = _return_documents(request, safe_uuid, "public_id")
+    if not records:
+        return jsonify({ 'message': 'Something went pop'}), 500
 
-    starting_id = None
-    try:
-        starting_id = mongo.db[public_id].find().sort('_id', ASCENDING)
-        #results_count = starting_id.count()
-    except:
-        jsonify({ 'message': 'There\'s a problem with your arguments or mongo or both or something else ;)'}), 400
-
-    if starting_id is None or starting_id.count() == 0:
-        return jsonify({ 'message': 'Nowt here chap'}), 404
-
-    app.logger.info("Starting id count is [%s]",str(starting_id.count()))
-    if starting_id.count() != 0 and starting_id.count() <= offset:
-        return jsonify({ 'message': 'offset is too big'}), 400
-
-    if offset < 0:
-        return jsonify({ 'message': 'offset is negative'}), 400
-
-    last_id = starting_id[offset]['_id']
-    results_count = starting_id.count()
-
-    fotos = []
-    try:
-        fotos = mongo.db[public_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
-    except:
-        jsonify({ 'message': 'There\'s a problem with your arguments or the planets are misaligned. Try sacrificing a goat or something...'}), 400
-
-    output = []
-    for foto in fotos:
-        foto['id'] = str(foto['_id'])
-        del foto['_id']
-        output.append(foto)
-    url_offset_next = offset+limit
-    url_offset_prev = offset-limit
-    if url_offset_prev < 0:
-         url_offset_prev = 0
-
-    if url_offset_next > fotos.count():
-        next_url = None
-
-    return_data = { 'fotos': output }
-
-    if url_offset_next < results_count:
-        next_url = '/fotos?limit='+str(limit)+'&offset='+str(url_offset_next)+'&sort='+sort
-        return_data['next_url'] = next_url
-
-    if offset > 0:
-        prev_url = '/fotos?limit='+str(limit)+'&offset='+str(url_offset_prev)+'&sort='+sort
-        return_data['prev_url'] = prev_url
-
-    return jsonify(return_data), 200
+    return jsonify(records), 200
 
 # --------------------------------------------------------------------------- #
-# return fotos by logged in user - optional pagination with from and to fields
+# return fotos by item_id.
 # --------------------------------------------------------------------------- #
 
-@bp.route('/fotos/<uuid:foto_id>', methods=['GET'])
-@require_access_level(10, request)
-def get_one_foto_by_user(public_id, request):
+@bp.route('/fotos/item/<item_id>', methods=['GET'])
+# @require_access_level(10, request)
+# def get_foto_by_id(public_id, request, foto_id):
+def get_fotos_by_item(item_id):
 
-    app.logger.debug(app.config)
+    app.logger.debug("In get_fotos_by_item")
 
-    offset, sort = 0, 'id_asc'
-    limit = int(app.config['PAGE_LIMIT'])
+    if not is_valid_uuid(item_id):
+        return jsonify({ 'message': 'Invalid UUID'}), 400
+    safe_uuid = str(item_id)
 
-    if 'offset' in request.args:
-        offset = int(request.args['offset'])
-    if 'limit' in request.args:
-        limit = int(request.args['limit'])
-    if 'sort' in request.args:
-        sort = request.args['sort']
+    # can have several docs returned per item
+    records = _return_documents(request, safe_uuid, "item_id")
+    if not records:
+        return jsonify({ 'message': 'Something went pop'}), 500
 
-    #TODO: need to get all the items by a user and then pull photos as they're
-    # stored by item_id collections
-
-    starting_id = None
-    try:
-        starting_id = mongo.db[public_id].find().sort('_id', ASCENDING)
-        #results_count = starting_id.count()
-    except:
-        jsonify({ 'message': 'There\'s a problem with your arguments or mongo or both or something else ;)'}), 400
-
-    if starting_id is None or starting_id.count() == 0:
-        return jsonify({ 'message': 'Nowt here chap'}), 404
-
-    app.logger.info("Starting id count is [%s]",str(starting_id.count()))
-    if starting_id.count() != 0 and starting_id.count() <= offset:
-        return jsonify({ 'message': 'offset is too big'}), 400
-
-    if offset < 0:
-        return jsonify({ 'message': 'offset is negative'}), 400
-
-    last_id = starting_id[offset]['_id']
-    results_count = starting_id.count()
-
-    fotos = []
-    try:
-        fotos = mongo.db[public_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
-    except:
-        jsonify({ 'message': 'There\'s a problem with your arguments or the planets are misaligned. Try sacrificing a goat or something...'}), 400
-
-    output = []
-    for foto in fotos:
-        foto['id'] = str(foto['_id'])
-        del foto['_id']
-        output.append(foto)
-    url_offset_next = offset+limit
-    url_offset_prev = offset-limit
-    if url_offset_prev < 0:
-        url_offset_prev = 0
-
-    if url_offset_next > fotos.count():
-        next_url = None
-
-    return_data = { 'fotos': output }
-
-    if url_offset_next < results_count:
-        next_url = '/fotos?limit='+str(limit)+'&offset='+str(url_offset_next)+'&sort='+sort
-        return_data['next_url'] = next_url
-
-    if offset > 0:
-        prev_url = '/fotos?limit='+str(limit)+'&offset='+str(url_offset_prev)+'&sort='+sort
-        return_data['prev_url'] = prev_url
-
-    return jsonify(return_data), 200
-
-#-----------------------------------------------------------------------------#
-# return list of fotos associated with an item 
-#-----------------------------------------------------------------------------#
-
-@bp.route('/fotos/item/<uuid:item_id>', methods=['GET'])
-#@require_access_level(10, request)
-#def return_all_items_listed(public_id, request, item_id):
-def return_all_records_in_collection(item_id):
-
-    item_id = str(item_id)
-    offset, sort = 0, 'id_asc'
-    limit = int(app.config['PAGE_LIMIT'])
-
-    if 'offset' in request.args:
-        offset = int(request.args['offset'])
-    if 'limit' in request.args:
-        limit = int(request.args['limit'])
-    if 'sort' in request.args:
-        sort = request.args['sort']
-
-    #starting_id = None
-    try:
-        #starting_id = mongo.db[item_id].find().sort('_id', ASCENDING)
-        #starting_id = mongo.db[item_id].find().sort('metadata.idx', ASCENDING)
-        records = list(mongo.db[item_id].find().sort('metadata.idx', ASCENDING))
-    except:
-        jsonify({ 'message': 'There\'s a problem with your arguments or mongo or both or something else ;)'}), 400
-
-    num_of_recs = len(records)
-    if num_of_recs == 0:
-        return jsonify({ 'message': 'Nowt here chap'}), 404
-
-    if num_of_recs <= offset:
-        return jsonify({ 'message': 'offset is too big'}), 400
-
-    if offset < 0:
-        return jsonify({ 'message': 'offset is negative'}), 400
-
-    last_id = records[offset]['metadata']['idx']
-
-    fotos = []
-    try:
-        #fotos = mongo.db[item_id].find({'_id': { '$gte': last_id}}).sort('_id', ASCENDING).limit(limit)
-        fotos = list(mongo.db[item_id].find({'metadata.idx': { '$gte': last_id}}).sort('metadata.idx', ASCENDING).limit(limit))
-    except:
-        jsonify({ 'message': 'There\'s a problem with your arguments or planets are misaligned. try sacrificing a goat or something...'}), 400
-
-    output = []
-    for foto in fotos:
-        foto['id'] = str(foto['_id'])
-        del foto['_id']
-        output.append(foto)
-    url_offset_next = offset+limit
-    url_offset_prev = offset-limit
-    if url_offset_prev < 0:
-         url_offset_prev = 0
-
-    if url_offset_next > len(fotos):
-        next_url = None
-
-    return_data = { 'fotos': output }
-
-    if url_offset_next < num_of_recs:
-        next_url = '/fotos/item/'+item_id+'?limit='+str(limit)+'&offset='+str(url_offset_next)+'&sort='+sort
-        return_data['next_url'] = next_url
-
-    if offset > 0:
-        prev_url = '/fotos/item/'+item_id+'?limit='+str(limit)+'&offset='+str(url_offset_prev)+'&sort='+sort
-        return_data['prev_url'] = prev_url
-
-    return jsonify(return_data), 200
+    return jsonify(records), 200
 
 
 #-----------------------------------------------------------------------------#
@@ -246,86 +95,39 @@ def create_foto(public_id, request):
 
     input_data = request.get_json()
 
+    app.logger.debug("Creating foto record")
+
     # validate input against json schemas
     try:
         assert_valid_schema(input_data)
     except JsonValidationError as err:
         return jsonify({ 'message': 'Check ya inputs mate.', 'error': err.message }), 400
 
-    # each item has it's own collection that foto data is stored in
-    #foto_id = str(uuid.uuid4())
     foto_id = input_data['foto_id']
     item_id = input_data['item_id']
     del input_data['item_id']
     del input_data['foto_id']
-    input_data['public_id'] = public_id
+
+    current_id = 0
     try:
-        mongo.db[item_id].insert_one({"_id" : foto_id, "metadata": input_data})    
+        for last_id in mongo.db.fotos.find({}, {"_id": 1}).sort({"_id": -1}).limit(1):
+            current_id = last_id["_id"]
+    except:
+        message = { 'message': 'Ooopsy, had trouble fetching last _id' }
+        return jsonify(message), 500
+
+    app.logger.debug("current_id is [%d]", current_id)
+
+    try:
+        mongo.db.fotos.insert_one({"_id": current_id + 1, "foto_id": foto_id, "item_id": item_id, "public_id": public_id, "metadata": input_data})
     except Exception as e:
         message = { 'message': 'Ooopsy, couldn\'t create mongo document.' }
         app.logger.error("Pymongo error [%s]", str(e))
         if app.config['ENVIRONMENT'] != 'PROD':
-            message['error'] = str(e)
+             message['error'] = str(e)
         return jsonify(message), 500
 
     return jsonify({ 'foto_id': foto_id }), 201
-
-#-----------------------------------------------------------------------------#
-# return item by logged in user - pass in item_id
-#-----------------------------------------------------------------------------#
-
-#@bp.route('/fotos/items/<item_id>', methods=['GET'])
-#@require_access_level(10, request)
-#def return_one_item(public_id, request, item_id):
-#
-#    app.logger.debug('In /items/items/<item_id> (GET)')
-#    #TODO: input validation
-#
-#    record = _return_document(public_id, item_id)
-#
-#    if isinstance(record,dict):
-#        return jsonify(record), 200
-#
-#    collection_name = 'Z' + public_id.replace('-','')
-#    return jsonify({ 'message': 'Could not find the item ['+item_id+'] in collection ['+collection_name+']' }), 404
-
-
-#-----------------------------------------------------------------------------#
-# return items by passed in user public_id - returns all items - ADMIN only
-#-----------------------------------------------------------------------------#
-
-@bp.route('/fotos/items/user/<other_user_public_id>', methods=['GET'])
-@require_access_level(5, request)
-def return_items_of_public_id(public_id, request, other_user_public_id):
-
-    if is_valid_uuid(other_user_public_id) is False:
-        return jsonify({ 'message': 'Invalid UUID'}), 400
-
-    collection_name = 'Z' + other_user_public_id.replace('-','')
-
-    output = []
-    try:    
-        records = mongo.db[collection_name].find()
-    except:
-        return jsonify({ 'message': 'Something\'s up with the item store. Could not find the collection ['+collection_name+']' }), 500
-    
-    if records.count() == 0:
-        return jsonify({ 'message': 'Could not find any items in collection ['+collection_name+']' }), 404
-
-    for record in records:
-        if isinstance(record['_id'], ObjectId):
-            record['item_id'] = str(record['_id'])
-            del record['_id']
-        output.append(record)
-
-    #if 'token' in kwargs:
-    #    return jsonify({ 'refresh_token': kwargs['token'], 'users': output })        
-
-    return jsonify({ 'items': output, 'public_id': other_user_public_id })    
-
-    #return jsonify({ 'message': 'In [/items/items/user/'+other_user_public_id+'] with current user ['+public_id+']' }), 501
-
-# --------------------------------------------------------------------------- #
 
 
 # --------------------------------------------------------------------------- #
@@ -347,30 +149,86 @@ def system_running():
 def is_valid_uuid(value):
     try:
         uuid.UUID(str(value))
-
         return True
     except ValueError:
         return False
 
-def _return_document(public_id, item_id):
+def _return_documents(request, in_uuid, in_key):
 
-    app.logger.debug('========================= return_document ===========================')
-    collection_name = 'Z' + public_id.replace('-','')
-    app.logger.debug('Collection name ['+collection_name+']')
-    app.logger.debug('Item id ['+item_id+']')
-    record = None
     try:
-        app.logger.debug('========================= scream ===========================')
-        record = mongo.db[collection_name].find_one({ '_id': ObjectId(item_id) })
-        app.logger.debug('========================= wanna? ===========================')
-        app.logger.debug(record)
+        offset = int(request.args.get('offset', 0))
+        limit = int(request.args.get('limit', app.config.get('PAGE_LIMIT', 10)))
+        sort = request.args.get('sort', 'id_asc')
+        paginate = bool(request.args.get('paginate', True))
+    except Exception:
+        return False
+
+    match in_key:
+        case "foto_id":
+            key_object = {"foto_id": in_uuid}
+        case "public_id":
+            key_object = {"public_id": in_uuid}
+        case "item_id":
+            key_object = {"item_id": in_uuid}
+        case _:
+            key_object = {"foto_id": in_uuid}
+
+    try:
+        # Get total number of documents
+        total_records = mongo.db.fotos.count_documents(key_object) if paginate else None
+
+        query = mongo.db.fotos.find(key_object)
+        if sort == 'id_asc':
+            query = query.sort([("_id", 1)])
+        elif sort == 'id_desc':
+            query = query.sort([("_id", -1)])
+
+        if paginate:
+            query = query.skip(offset).limit(limit)
+        records = list(query)
     except Exception as e:
-        return False #jsonify({ 'message': 'Something\'s up with the item store. Could not find the item ['+item_id+'] in collection ['+collection_name+']' }), 500
+        return False
 
-    if record is None:
-        return False #jsonify({ 'message': 'Could not find the item ['+item_id+'] in collection ['+collection_name+']' }), 404
-    # replace _id with item_id as _id is a returned object 
-    record['item_id'] = item_id
-    del record['_id']
+    if len(records) == 0:
+        return False
 
-    return(record)
+    out_docs = []
+    for rec in records:
+        if '_id' in rec:
+            del rec['_id']
+        out_docs.append(rec)
+
+    pagination = None
+    if paginate:
+        path = request.path
+        args = request.args.to_dict()
+        next_url = prev_url = None
+
+        # next_url logic
+        if total_records is not None and (offset + limit) < total_records:
+            next_args = args.copy()
+            next_args['offset'] = offset + limit
+            next_args['limit'] = limit
+            next_url = f"{path}?{urlencode(next_args)}"
+
+        # prev_url logic
+        if offset > 0:
+            prev_args = args.copy()
+            prev_args['offset'] = max(0, offset - limit)
+            prev_args['limit'] = limit
+            prev_url = f"{path}?{urlencode(prev_args)}"
+
+        pagination = {
+            "offset": offset,
+            "limit": limit,
+            "returned": len(out_docs),
+            "total": total_records,
+        }
+        if next_url:
+            pagination["next_url"] = next_url
+        if prev_url:
+            pagination["prev_url"] = prev_url
+
+        return { 'docs': out_docs, 'pagination': pagination }
+    else:
+        return out_docs
