@@ -16,6 +16,7 @@
 /app/*.pyc
 /app/main/*.pyc
 */.DS_Store
+/app/main/views_ALL.py.OLD
 # Un-ignore these files - it's bit of a clonky way to do it but it's more secure
 !app/
 !Dockerfile

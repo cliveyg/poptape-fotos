@@ -3,10 +3,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: poptape/fotos/api:v0.1
+    image: poptape/fotos/api:v${VERSION}
     ports:
       - "1236:8002"
-    restart: no
+    restart: always
     depends_on:
       - mongodb
     volumes:
