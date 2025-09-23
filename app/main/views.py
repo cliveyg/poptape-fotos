@@ -36,7 +36,9 @@ def get_foto_by_id(foto_id):
     # can have several docs returned per foto as foto reuse is possible
     records = _return_documents(request, safe_uuid, "foto_id")
     if not records:
-        return jsonify({ 'message': 'Something went pop'}), 500
+        # return jsonify({ 'message': 'Something went pop'}), 500
+        # return empty array
+        return jsonify({ 'docs': []}), 404
 
     return jsonify(records), 200
 
@@ -58,7 +60,9 @@ def get_fotos_by_current_user(public_id, request):
     # can have several docs returned per item
     records = _return_documents(request, safe_uuid, "public_id")
     if not records:
-        return jsonify({ 'message': 'Something went pop'}), 500
+        # return jsonify({ 'message': 'Something went pop'}), 500
+        # return empty array
+        return jsonify({ 'docs': []}), 404
 
     return jsonify(records), 200
 
@@ -80,7 +84,9 @@ def get_fotos_by_item(item_id):
     # can have several docs returned per item
     records = _return_documents(request, safe_uuid, "item_id")
     if not records:
-        return jsonify({ 'message': 'Something went pop'}), 500
+        # return jsonify({ 'message': 'Something went pop'}), 500
+        # return empty array
+        return jsonify({ 'docs': []}), 404
 
     return jsonify(records), 200
 
@@ -159,7 +165,7 @@ def _return_documents(request, in_uuid, in_key):
         offset = int(request.args.get('offset', 0))
         limit = int(request.args.get('limit', app.config.get('PAGE_LIMIT', 10)))
         sort = request.args.get('sort', 'id_asc')
-        paginate = bool(request.args.get('paginate', True))
+        paginate = bool(request.args.get('paginate', False))
     except Exception:
         return False
 
@@ -231,4 +237,4 @@ def _return_documents(request, in_uuid, in_key):
 
         return { 'docs': out_docs, 'pagination': pagination }
     else:
-        return out_docs
+        return { 'docs': out_docs }
